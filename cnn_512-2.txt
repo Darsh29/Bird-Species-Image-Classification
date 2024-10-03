@@ -1,0 +1,140 @@
+# %%
+# Import Data Science Libraries
+# import numpy as np
+# import pandas as pd
+import tensorflow as tf
+# import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+# Tensorflow Libraries
+from tensorflow import keras
+from tensorflow.keras import layers, models
+from keras_preprocessing.image import ImageDataGenerator
+
+# System libraries
+# from pathlib import Path
+# import os.path
+
+from data_generation import prepare_data
+
+BATCH_SIZE = 32
+TARGET_SIZE = (150, 150)
+
+# %%
+train_df, val_df, test_df = prepare_data()
+
+# %%
+train_generator = ImageDataGenerator(
+                        rescale=1./255,
+                        rotation_range=30,
+                        brightness_range=[0.7,1.3],
+                        shear_range=0.1,
+                        zoom_range=0.3,
+                        width_shift_range=0.2, 
+                        height_shift_range=0.2,
+                        horizontal_flip=True)
+
+test_generator = ImageDataGenerator(rescale=1./255)
+
+# %%
+# Generate Training images
+train_images = train_generator.flow_from_dataframe(
+                        dataframe=train_df,
+                        x_col='Filepath',
+                        y_col='Label',
+                        target_size=TARGET_SIZE,  # all images will be resized to TARGET_SIZE
+                        interpolation='nearest',
+                        color_mode='rgb',
+                        class_mode='categorical',
+                        classes=list(train_df['Label'].unique()),
+                        batch_size=BATCH_SIZE,
+                        shuffle=True,
+                        seed=175)
+
+# %%
+# Generate Validation images
+val_images = test_generator.flow_from_dataframe(
+                    dataframe=val_df,
+                    x_col='Filepath',
+                    y_col='Label',
+                    target_size=TARGET_SIZE,  # all images will be resized to TARGET_SIZE
+                    interpolation='nearest',
+                    color_mode='rgb',
+                    class_mode='categorical',
+                    classes=list(train_df['Label'].unique()),
+                    batch_size=BATCH_SIZE,
+                    shuffle=True,
+                    seed=42)
+
+
+# %%
+# Generate test images
+test_images = test_generator.flow_from_dataframe(
+                    dataframe=test_df,
+                    x_col='Filepath',
+                    y_col='Label',
+                    target_size=TARGET_SIZE,  # all images will be resized to TARGET_SIZE
+                    interpolation='nearest',
+                    color_mode='rgb',
+                    class_mode='categorical',
+                    classes=list(train_df['Label'].unique()),
+                    shuffle=False,
+                    seed=42)
+
+# %%
+model = models.Sequential()
+model.add(layers.Conv2D(16, (3, 3), strides=(1, 1), padding='same', activation='relu', input_shape=(TARGET_SIZE[0], TARGET_SIZE[1], 3)))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+model.add(layers.Conv2D(32, (3, 3), strides=(1, 1), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+model.add(layers.Conv2D(64, (3, 3), strides=(1, 1), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+model.add(layers.Conv2D(128, (3, 3), strides=(1, 1), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+model.add(layers.Conv2D(256, (3, 3), strides=(1, 1), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+model.add(layers.Conv2D(256, (3, 3), strides=(2, 2), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=3, padding="same"))
+
+# model.add(layers.Dropout(0.25))
+
+model.add(layers.Flatten())
+model.add(layers.Dense(100, activation='relu'))
+model.add(layers.Dense(525, activation='softmax'))
+
+opt = keras.optimizers.Adam(learning_rate=0.001)
+model.compile(optimizer=opt,
+              loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
+              metrics=['accuracy'])
+
+model.summary()
+
+# %%
+callbacks = [
+    keras.callbacks.ModelCheckpoint(
+        filepath="./model/cnn_512.keras",
+        save_best_only=True,
+        monitor="val_loss"), 
+    keras.callbacks.ReduceLROnPlateau(monitor='val_loss', 
+                                      factor=0.2, 
+                                      patience=3, 
+                                      min_lr=1e-6),
+    keras.callbacks.EarlyStopping(monitor='val_loss', 
+                                  verbose=1,
+                                  min_delta=0.01,
+                                  patience=5)
+                                      ]
+
+history = model.fit(train_images, epochs=100, 
+                    validation_data=val_images, callbacks=callbacks)
+model.save_weights('./model/cnn_512.weights.h5') 
+
+# %%
+
+
+
