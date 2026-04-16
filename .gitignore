@@ -1,0 +1,76 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Dataset - too large for GitHub (~5GB)
+data/
+*.jpg
+*.JPG
+*.jpeg
+*.png
+*.PNG
+
+# Trained model weights
+model/
+models/
+*.keras
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.bin
+*.safetensors
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Results and outputs
+results/
+outputs/
+*.csv
+*.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PDF reports (course submissions)
+*.pdf
+*.pptx
+
+# Logs
+*.log
+logs/
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
